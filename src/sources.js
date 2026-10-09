@@ -4,6 +4,9 @@ export const SUGGEST_TIMEOUT_MS = 800;
 export const HISTORY_DAYS = 90;
 export const HISTORY_MAX = 50;
 export const SUGGEST_MAX = 5;
+// Suggestions may trail the local results by at most this long; after that the
+// palette gets tabs/history/bookmarks without them.
+export const SUGGEST_GRACE_MS = 150;
 
 const DAY = 86400_000;
 
@@ -74,22 +77,32 @@ export async function suggestCandidates(q, fetchFn, timeoutMs = SUGGEST_TIMEOUT_
   }
 }
 
-export async function gather(query, ctx, api, settings, { fetchFn = globalThis.fetch, now = Date.now() } = {}) {
+function withGrace(promise, ms) {
+  let timer;
+  const grace = new Promise(resolve => { timer = setTimeout(() => resolve(null), ms); });
+  return Promise.race([promise, grace]).finally(() => clearTimeout(timer));
+}
+
+export async function gather(query, ctx, api, settings, { fetchFn = globalThis.fetch, now = Date.now(), suggestGraceMs = SUGGEST_GRACE_MS } = {}) {
   const q = (query ?? '').trim();
   if (!q) {
     const tabs = await tabCandidates(api, ctx).catch(() => []);
     return [...tabs, ...commandCandidates().filter(c => c.commandId === 'new-tab')];
   }
-  const jobs = [
+  const suggestJob = settings.suggestEnabled ? suggestCandidates(q, fetchFn) : null;
+  const localJobs = [
     tabCandidates(api, ctx),
     bookmarkCandidates(api, q),
     historyCandidates(api, q, now),
     recentlyClosedCandidates(api),
-    settings.suggestEnabled ? suggestCandidates(q, fetchFn) : Promise.resolve([]),
   ];
-  const settled = await Promise.allSettled(jobs);
+  const settled = await Promise.allSettled(localJobs);
   const out = [];
   for (const s of settled) if (s.status === 'fulfilled') out.push(...s.value);
+  if (suggestJob) {
+    const suggestions = await withGrace(suggestJob, suggestGraceMs);
+    if (Array.isArray(suggestions)) out.push(...suggestions);
+  }
   out.push(...commandCandidates());
   return out;
 }

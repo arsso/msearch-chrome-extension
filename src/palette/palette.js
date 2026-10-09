@@ -122,6 +122,8 @@ export function createPalette({ root, host, send, onClose = () => {}, faviconUrl
 
   function onKey(e) {
     if (!open) return;
+    // Nothing typed into the palette may reach the page's own shortcut handlers.
+    e.stopPropagation();
     switch (e.key) {
       case 'ArrowDown': selected = Math.min(results.length - 1, selected + 1); updateSelection(); break;
       case 'ArrowUp': selected = Math.max(0, selected - 1); updateSelection(); break;
@@ -131,7 +133,6 @@ export function createPalette({ root, host, send, onClose = () => {}, faviconUrl
       default: return;
     }
     e.preventDefault();
-    e.stopPropagation();
   }
 
   rootEl.addEventListener('keydown', onKey);

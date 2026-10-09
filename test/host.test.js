@@ -53,7 +53,7 @@ test('chrome:// page: opens centered fallback window and remembers origin tab', 
   await host.openPalette();
   const create = api.calls.find(c => c[0] === 'windows.create')[1];
   assert.equal(create.type, 'popup');
-  assert.equal(create.url, 'chrome-extension://id/palette/palette.html');
+  assert.ok(create.url.startsWith('chrome-extension://id/palette/palette.html'));
   assert.equal(create.left, 100 + Math.round((1400 - create.width) / 2));
   assert.deepEqual(host.fallbackCtx(), { tabId: 5, windowId: 10 });
   assert.ok(!api.calls.some(c => c[0] === 'inject'), 'no injection attempted on chrome://');
@@ -80,4 +80,51 @@ test('fallback closes when another window gains focus, stays when Chrome loses f
   assert.ok(api.calls.some(c => c[0] === 'windows.remove' && c[1] === 77));
   host.handleWindowRemoved(77);
   assert.deepEqual(host.fallbackCtx(), {});
+});
+
+function sessionStore() {
+  const data = {};
+  return { get: async (k) => (typeof k === 'string' ? { [k]: data[k] } : { ...data }), set: async (o) => Object.assign(data, o), remove: async (k) => { delete data[k]; } };
+}
+
+test('popup sender is recognised from its URL without in-memory state', () => {
+  const api = fakeApi({ sendResult: { ok: true } });
+  const host = createHostController(api);
+  const sender = { tab: { id: 99, windowId: 77 }, url: 'chrome-extension://id/palette/palette.html?tabId=5&windowId=10' };
+  assert.equal(host.isPopupSender(sender), true);
+  assert.deepEqual(host.ctxFor(sender), { tabId: 5, windowId: 10 });
+  const pageSender = { tab: { id: 3, windowId: 1 }, url: 'https://e.com/' };
+  assert.equal(host.isPopupSender(pageSender), false);
+  assert.deepEqual(host.ctxFor(pageSender), { tabId: 3, windowId: 1 });
+});
+
+test('fallback window URL carries the origin tab', async () => {
+  const api = fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://extensions' } });
+  await createHostController(api).openPalette();
+  const create = api.calls.find(c => c[0] === 'windows.create')[1];
+  assert.equal(create.url, 'chrome-extension://id/palette/palette.html?tabId=5&windowId=10');
+});
+
+test('close from the popup removes the sender window even after a worker restart', async () => {
+  const api = fakeApi({ sendResult: { ok: true } });
+  const host = createHostController(api);
+  await host.closeFromSender({ tab: { id: 99, windowId: 77 }, url: 'chrome-extension://id/palette/palette.html?tabId=5&windowId=10' });
+  assert.deepEqual(api.calls, [['windows.remove', 77]]);
+});
+
+test('duplicate-window and focus checks survive a worker restart via storage.session', async () => {
+  const store = sessionStore();
+  const api = fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://extensions' } });
+  api.storage = { session: store };
+  await createHostController(api).openPalette();
+  assert.equal(api.calls.filter(c => c[0] === 'windows.create').length, 1);
+
+  const api2 = fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://extensions' } });
+  api2.storage = { session: store };
+  const fresh = createHostController(api2);
+  await fresh.openPalette();
+  assert.equal(api2.calls.filter(c => c[0] === 'windows.create').length, 0, 'no second popup');
+  assert.deepEqual(api2.calls.at(-1), ['windows.update', 77, { focused: true }]);
+  await fresh.handleFocusChanged(10);
+  assert.ok(api2.calls.some(c => c[0] === 'windows.remove' && c[1] === 77));
 });

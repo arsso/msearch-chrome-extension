@@ -13,15 +13,8 @@ chrome.action.onClicked.addListener(() => host.openPalette());
 chrome.windows.onRemoved.addListener((id) => host.handleWindowRemoved(id));
 chrome.windows.onFocusChanged.addListener((id) => host.handleFocusChanged(id));
 
-function ctxFor(sender) {
-  if (sender.tab && !host.isFallbackWindow(sender.tab.windowId)) {
-    return { tabId: sender.tab.id, windowId: sender.tab.windowId };
-  }
-  return host.fallbackCtx();
-}
-
 async function handle(msg, sender) {
-  const ctx = ctxFor(sender);
+  const ctx = host.ctxFor(sender);
   switch (msg?.type) {
     case 'query': {
       const settings = await getSettings(chrome);
@@ -35,7 +28,7 @@ async function handle(msg, sender) {
       return { ok: true, ...out };
     }
     case 'close': {
-      if (!sender.tab || host.isFallbackWindow(sender.tab.windowId)) await host.closeFallback();
+      if (host.isPopupSender(sender)) await host.closeFromSender(sender);
       return { ok: true };
     }
     default:

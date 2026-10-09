@@ -80,3 +80,12 @@ test('slow suggest endpoint is abandoned after the timeout', async () => {
   assert.deepEqual(out, []);
   assert.ok(Date.now() - start < SUGGEST_TIMEOUT_MS);
 });
+
+test('local results are returned promptly even when suggest never answers', { timeout: 2000 }, async () => {
+  const neverFetch = () => new Promise(() => {});
+  const start = Date.now();
+  const cands = await gather('x', { tabId: 1 }, fakeApi(), settings, { fetchFn: neverFetch, now: NOW });
+  assert.ok(Date.now() - start < 500, `took ${Date.now() - start}ms`);
+  assert.ok(cands.some(c => c.type === 'tab'));
+  assert.ok(!cands.some(c => c.type === 'suggest'));
+});

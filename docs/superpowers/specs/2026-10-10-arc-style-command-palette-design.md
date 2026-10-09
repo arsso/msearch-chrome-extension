@@ -37,9 +37,10 @@ src/
     palette.html       yedek pencere
     palette.js         UI: input, liste, klavye; host'tan bağımsız
     palette.css        stil (overlay'de <style> olarak shadow root'a basılır)
-    ranking.js         saf fonksiyonlar: eşleştirme + puanlama
-    sources.js         (worker tarafı) sekme/geçmiş/yer imi/öneri/komut toplayıcılar
-    commands.js        (worker tarafı) komut tanımları ve yürütücüleri
+  ranking.js           saf fonksiyonlar: eşleştirme + puanlama (worker tarafı)
+  sources.js           worker tarafı: sekme/geçmiş/yer imi/öneri/komut toplayıcılar
+  commands.js          worker tarafı: komut tanımları ve yürütücüleri
+  options.html/js      ayarlar sayfası
 test/
   ranking.test.js      node --test ile çalışır
 ```

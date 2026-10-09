@@ -48,7 +48,7 @@ test('empty or whitespace query returns recent tabs then commands, no tail', () 
   }
 });
 
-test('tail always ends with search; navigate precedes search for URL-like input', () => {
+test('search row always last; URL-like input adds a navigate row first', () => {
   const r1 = rank('cats', [], { now: NOW, engineName: 'Google' });
   assert.deepEqual(r1.map(x => x.type), ['search']);
   assert.equal(r1[0].title, 'Search Google for "cats"');
@@ -120,4 +120,15 @@ test('url matches count but less than title matches', () => {
   const r = rank('github', cands, { now: NOW });
   assert.equal(r[0].title, 'GitHub');
   assert.equal(r[1].url, 'https://github.com/x');
+});
+
+test('URL-like input puts the navigate row first, above any match', () => {
+  const cands = [
+    { type: 'suggest', title: 'example.com tutorial', query: 'example.com tutorial' },
+    { type: 'history', title: 'Example', url: 'https://example.com/old', lastTime: NOW, visitCount: 5 },
+  ];
+  const r = rank('example.com', cands, { now: NOW });
+  assert.equal(r[0].type, 'navigate');
+  assert.equal(r[0].url, 'https://example.com');
+  assert.equal(r.at(-1).type, 'search');
 });

@@ -124,14 +124,13 @@ function dedupe(results) {
   return out;
 }
 
-function buildTail(query, engineName) {
-  const q = query.trim();
-  const tail = [];
-  if (isUrlLike(q)) {
-    tail.push({ type: 'navigate', title: `Go to ${q}`, url: normalizeUrlInput(q), score: 0 });
-  }
-  tail.push({ type: 'search', title: `Search ${engineName} for "${q}"`, query: q, score: 0 });
-  return tail;
+function navigateRow(q) {
+  if (!isUrlLike(q)) return null;
+  return { type: 'navigate', title: `Go to ${q}`, url: normalizeUrlInput(q), score: 0 };
+}
+
+function searchRow(q, engineName) {
+  return { type: 'search', title: `Search ${engineName} for "${q}"`, query: q, score: 0 };
 }
 
 export function rank(query, candidates, { now = Date.now(), engineName = 'Google' } = {}) {
@@ -151,6 +150,8 @@ export function rank(query, candidates, { now = Date.now(), engineName = 'Google
   }
   scored.sort((a, b) => b.score - a.score);
   const unique = dedupe(scored).sort((a, b) => b.score - a.score);
-  const tail = buildTail(q, engineName);
-  return [...unique.slice(0, MAX_RESULTS - tail.length), ...tail];
+  // A typed URL goes first (like Arc's "Go to"); the web search row always closes the list.
+  const head = navigateRow(q) ? [navigateRow(q)] : [];
+  const tail = [searchRow(q, engineName)];
+  return [...head, ...unique.slice(0, MAX_RESULTS - head.length - tail.length), ...tail];
 }

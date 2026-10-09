@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>msearch settings</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #1d1d1f; }
+    @media (prefers-color-scheme: dark) { body { color: #f5f5f7; background: #1c1c1e; } }
+    label { display: block; margin: 18px 0 6px; font-weight: 600; }
+    select { font: inherit; padding: 6px 8px; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .hint { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+    .ok { margin-top: 16px; font-size: 12px; color: #2a9d4b; height: 1em; }
+  </style>
+</head>
+<body>
+  <h1>msearch</h1>
+  <label for="engine">Search engine</label>
+  <select id="engine">
+    <option value="google">Google</option>
+    <option value="duckduckgo">DuckDuckGo</option>
+    <option value="bing">Bing</option>
+  </select>
+  <label class="row"><input type="checkbox" id="suggest"> Show search suggestions</label>
+  <div class="hint">When on, typed text is sent to Google's suggestion endpoint.</div>
+  <div class="hint">Shortcut: change it at <code>chrome://extensions/shortcuts</code>.</div>
+  <div class="ok" id="ok"></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

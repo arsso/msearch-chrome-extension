@@ -3,10 +3,14 @@
   "name": "msearch",
   "version": "0.1.0",
   "description": "Arc-style command palette: tabs, history, bookmarks, web search and commands in one box.",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "permissions": ["tabs", "history", "bookmarks", "sessions", "scripting", "storage", "activeTab", "favicon"],
   "host_permissions": ["<all_urls>", "https://suggestqueries.google.com/*"],
   "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "Open msearch palette" },
+  "action": {
+    "default_title": "Open msearch palette",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  },
   "commands": {
     "open-palette": {
       "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },

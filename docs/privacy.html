@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>msearch privacy policy</title>
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --card: #f5f5f7; --border: rgba(0,0,0,0.08); --accent: #5b6cff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111113; --fg: #f5f5f7; --muted: #a1a1a6; --card: #1c1c1f; --border: rgba(255,255,255,0.1); --accent: #7c88ff; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 64px 16px 80px; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .meta { color: var(--muted); margin: 0 0 28px; }
+  ul { padding-left: 22px; }
+  li { margin: 8px 0; }
+  code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); border-radius: 5px; padding: 2px 6px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="./">← msearch</a></p>
+  <h1>Privacy policy</h1>
+  <p class="meta">Last updated 11 October 2026</p>
+
+  <p>msearch does not collect, store or transmit any personal data to the developer or to any third party.</p>
+
+  <ul>
+    <li><strong>Tabs, browsing history, bookmarks and recently closed tabs</strong> are read locally on your device only to display matching entries in the palette. They never leave your browser.</li>
+    <li><strong>Settings</strong> (search engine, suggestions on or off) are stored with Chrome's sync storage, which is tied to your own Google account and is not accessible to the developer.</li>
+    <li><strong>Search suggestions.</strong> When suggestions are enabled (on by default, can be turned off in the options page), the text you type in the palette is sent to Google's suggestion service at <code>suggestqueries.google.com</code> to show completions. No other identifier is sent with it.</li>
+    <li><strong>Web search.</strong> When you run a web search from the palette, the query is sent to the search engine you selected in the options page.</li>
+    <li>The extension contains <strong>no analytics, tracking or advertising code</strong> and does not read or modify the content of the pages you visit.</li>
+  </ul>
+
+  <p>Contact: <a href="mailto:arssolabs@gmail.com">arssolabs@gmail.com</a>, or open an issue at <a href="https://github.com/arsso/msearch-chrome-extension/issues">github.com/arsso/msearch-chrome-extension</a>.</p>
+</main>
+</body>
+</html>

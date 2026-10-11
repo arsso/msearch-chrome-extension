@@ -90,16 +90,59 @@ function sessionStore() {
   return { get: async (k) => (typeof k === 'string' ? { [k]: data[k] } : { ...data }), set: async (o) => Object.assign(data, o), remove: async (k) => { delete data[k]; } };
 }
 
-test('popup sender is recognised from its URL without in-memory state', () => {
+test('popup sender is recognised from its URL without in-memory state', async () => {
   const api = fakeApi({ sendResult: { ok: true } });
   const host = createHostController(api);
   const sender = { tab: { id: 99, windowId: 77 }, url: 'chrome-extension://id/palette/palette.html?tabId=5&windowId=10' };
   assert.equal(host.isPopupSender(sender), true);
-  assert.deepEqual(host.ctxFor(sender), { tabId: 5, windowId: 10 });
+  assert.deepEqual(await host.ctxFor(sender), { tabId: 5, windowId: 10 });
   const pageSender = { tab: { id: 3, windowId: 1 }, url: 'https://e.com/' };
   assert.equal(host.isPopupSender(pageSender), false);
-  assert.deepEqual(host.ctxFor(pageSender), { tabId: 3, windowId: 1 });
+  assert.deepEqual(await host.ctxFor(pageSender), { tabId: 3, windowId: 1 });
 });
+
+test('action popup sender without origin params resolves to the active tab of the last focused window', async () => {
+  const api = fakeApi({ sendResult: { ok: true }, activeTab: { id: 8, windowId: 20, url: 'chrome://newtab' } });
+  const host = createHostController(api);
+  const sender = { url: 'chrome-extension://id/palette/action.html' };
+  assert.equal(host.isPopupSender(sender), true);
+  assert.deepEqual(await host.ctxFor(sender), { tabId: 8, windowId: 20 });
+});
+
+function withAction(api, { openOk = true } = {}) {
+  api.action = { openPopup: async (o) => { api.calls.push(['action.openPopup', o]); if (!openOk) throw new Error('Failed to open popup.'); } };
+  return api;
+}
+
+test('chrome:// page: opens the toolbar action popup in the current window, never a separate window', async () => {
+  const api = withAction(fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://newtab' } }));
+  await createHostController(api).openPalette();
+  assert.deepEqual(api.calls.map(c => c[0]), ['sendMessage', 'action.openPopup']);
+  assert.deepEqual(api.calls[1][1], { windowId: 10 });
+});
+
+test('separate window is only a last resort when the action popup cannot open', async () => {
+  const api = withAction(fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://newtab' } }), { openOk: false });
+  await createHostController(api).openPalette();
+  assert.deepEqual(api.calls.map(c => c[0]), ['sendMessage', 'action.openPopup', 'windows.create']);
+});
+
+test('shortcut while the action popup is open closes it instead of opening again', async () => {
+  const api = withAction(fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://newtab' } }));
+  const host = createHostController(api);
+  await host.openPalette();
+  const sent = [];
+  const listeners = [];
+  const port = { name: 'action-popup', postMessage: (m) => sent.push(m), onDisconnect: { addListener: (f) => listeners.push(f) } };
+  host.trackActionPopup(port);
+  await host.openPalette();
+  assert.deepEqual(sent, [{ type: 'close' }]);
+  assert.equal(api.calls.filter(c => c[0] === 'action.openPopup').length, 1);
+  listeners.forEach(f => f());
+  await host.openPalette();
+  assert.equal(api.calls.filter(c => c[0] === 'action.openPopup').length, 2);
+});
+
 
 test('fallback window URL carries the origin tab', async () => {
   const api = fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://extensions' } });

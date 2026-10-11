@@ -7,13 +7,7 @@
   // window; the palette only acts on keys while it is open. Re-bound on every
   // open as well: adding the same listener again is a no-op when it is still
   // there, and restores it when it is not.
-  const diag = [];
-  const forwardKey = (e) => {
-    // DIAG: temporary trace, visible from the page context.
-    diag.push(`${e.type}:${e.key}|open=${!!state.palette?.isOpen()}|focus=${document.hasFocus()}|trusted=${e.isTrusted}|${Date.now() % 100000}`);
-    document.documentElement.setAttribute('data-msearch-keys', JSON.stringify(diag.slice(-12)));
-    if (state.palette?.isOpen()) state.palette.handleKey(e);
-  };
+  const forwardKey = (e) => { if (state.palette?.isOpen()) state.palette.handleKey(e); };
   function bindKeys() {
     for (const type of ['keydown', 'keyup', 'keypress']) window.addEventListener(type, forwardKey, true);
   }
@@ -49,7 +43,7 @@
   chrome.runtime.onMessage.addListener((msg, _sender, respond) => {
     if (msg?.type !== 'toggle') return false;
     ensurePalette()
-      .then((p) => { bindKeys(); if (p.isOpen()) p.close(); else p.open(); document.documentElement.setAttribute('data-msearch-open', `${p.isOpen()}|focus=${document.hasFocus()}|${Date.now()}`); respond({ ok: true }); })
+      .then((p) => { bindKeys(); if (p.isOpen()) p.close(); else p.open(); respond({ ok: true }); })
       .catch((e) => respond({ ok: false, error: e?.message ?? String(e) }));
     return true;
   });

@@ -35,7 +35,9 @@ npm test
 ### Manual checklist
 
 - [ ] On a normal page (e.g. github.com) the shortcut opens the palette centred over the page; Esc closes.
-- [ ] On `chrome://extensions` the shortcut opens the palette in a small popup window; it closes when you click another window.
+- [ ] On `chrome://extensions` or a new tab the shortcut opens the palette as the toolbar popup (anchored to the extension icon or the puzzle-piece menu); it closes when you click elsewhere.
+- [ ] Same with Chrome in macOS fullscreen: the popup appears in the fullscreen window, not on another desktop.
+- [ ] Clicking the extension icon opens the same popup.
 - [ ] Empty query lists recent tabs; typing part of a tab title and pressing Enter switches to it.
 - [ ] Typing a history term shows History rows; `⌘↵` opens it in a new tab.
 - [ ] Typing `example.com` shows **Go to example.com** above the search row.
@@ -44,7 +46,6 @@ npm test
 - [ ] On Gmail or GitHub the palette looks the same (no site CSS leaking in) and site shortcuts do not fire while typing.
 - [ ] On a page that pulls focus back to its own input, or that handles Esc / arrows at window level, typing still lands in the palette and Esc closes it.
 - [ ] Clicking the palette footer or list padding, then pressing Esc, still closes it.
-- [ ] While the popup window is open, the shortcut closes it.
-- [ ] With Chrome in macOS fullscreen, the shortcut on a new tab shows a centred panel on a dimmed backdrop, not a stretched one.
+- [ ] While the popup is open, the shortcut closes it.
 - [ ] With suggestions off, DevTools → service worker → Network shows no request to suggestqueries.google.com.
 - [ ] Clicking outside the panel (the dimmed backdrop) closes it.

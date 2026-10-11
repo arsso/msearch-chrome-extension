@@ -9,12 +9,13 @@ const host = createHostController(chrome);
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'open-palette') host.openPalette();
 });
-chrome.action.onClicked.addListener(() => host.openPalette());
+// The toolbar button opens the action popup itself (manifest default_popup).
+chrome.runtime.onConnect.addListener((port) => host.trackActionPopup(port));
 chrome.windows.onRemoved.addListener((id) => host.handleWindowRemoved(id));
 chrome.windows.onFocusChanged.addListener((id) => host.handleFocusChanged(id));
 
 async function handle(msg, sender) {
-  const ctx = host.ctxFor(sender);
+  const ctx = await host.ctxFor(sender);
   switch (msg?.type) {
     case 'query': {
       const settings = await getSettings(chrome);

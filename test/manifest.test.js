@@ -28,3 +28,7 @@ test('manifest wires shortcut, content script and web accessible resources', () 
   assert.ok(resources.includes('_favicon/*'));
   assert.equal(manifest.options_page, 'options.html');
 });
+
+test('toolbar action opens the palette popup page', () => {
+  assert.equal(manifest.action.default_popup, 'palette/action.html');
+});

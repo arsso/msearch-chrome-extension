@@ -1,6 +1,8 @@
 const FALLBACK_WIDTH = 640;
 const FALLBACK_HEIGHT = 440;
 const PALETTE_PAGE = 'palette/palette.html';
+const PALETTE_DIR = 'palette/';
+const ACTION_PORT = 'action-popup';
 const STATE_KEY = 'msearchFallback';
 
 export function canInject(url) {
@@ -31,6 +33,9 @@ export function createHostController(api) {
   // its origin tab so it stays usable after a restart.
   let fallback = { windowId: null, originTabId: undefined, originWindowId: undefined };
   const session = api.storage?.session;
+  // Open toolbar action popups, by their runtime port. A port keeps the worker
+  // alive, so this set does not need to survive a restart.
+  const actionPorts = new Set();
 
   const ready = (async () => {
     if (!session) return;
@@ -53,15 +58,53 @@ export function createHostController(api) {
   }
 
   function isPopupSender(sender) {
-    return typeof sender?.url === 'string' && sender.url.startsWith(palettePageUrl());
+    return typeof sender?.url === 'string' && sender.url.startsWith(api.runtime.getURL(PALETTE_DIR));
   }
 
-  function ctxFor(sender) {
-    if (isPopupSender(sender)) return parseOrigin(sender.url);
+  async function activeTab() {
+    const [tab] = await api.tabs.query({ active: true, lastFocusedWindow: true });
+    return tab;
+  }
+
+  async function ctxFor(sender) {
+    if (isPopupSender(sender)) {
+      const origin = parseOrigin(sender.url);
+      if (origin.tabId != null) return origin;
+      // The toolbar action popup carries no origin in its URL; it belongs to
+      // the window it is anchored to, which is the last focused one.
+      const tab = await activeTab();
+      return tab ? { tabId: tab.id, windowId: tab.windowId } : {};
+    }
     if (sender?.tab && sender.tab.windowId !== fallback.windowId) {
       return { tabId: sender.tab.id, windowId: sender.tab.windowId };
     }
     return fallbackCtx();
+  }
+
+  function trackActionPopup(port) {
+    if (port?.name !== ACTION_PORT) return false;
+    actionPorts.add(port);
+    port.onDisconnect.addListener(() => actionPorts.delete(port));
+    return true;
+  }
+
+  function closeActionPopups() {
+    for (const port of actionPorts) {
+      try { port.postMessage({ type: 'close' }); } catch { /* already gone */ }
+    }
+    actionPorts.clear();
+  }
+
+  // The toolbar popup is drawn inside the current window, so unlike a separate
+  // window it is visible on chrome:// pages and from a macOS fullscreen Space.
+  async function openActionPopup(tab) {
+    if (typeof api.action?.openPopup !== 'function') return false;
+    try {
+      await api.action.openPopup({ windowId: tab.windowId });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async function sendToggle(tabId) {
@@ -104,7 +147,8 @@ export function createHostController(api) {
 
   async function openPalette() {
     await ready;
-    const [tab] = await api.tabs.query({ active: true, lastFocusedWindow: true });
+    if (actionPorts.size) return closeActionPopups();
+    const tab = await activeTab();
     if (!tab) return openFallback(null);
     if (tab.windowId === fallback.windowId) return closeFallback();
     if (await sendToggle(tab.id)) return;
@@ -114,6 +158,7 @@ export function createHostController(api) {
         if (await sendToggle(tab.id)) return;
       } catch { /* fall through */ }
     }
+    if (await openActionPopup(tab)) return;
     await openFallback(tab);
   }
 
@@ -158,6 +203,7 @@ export function createHostController(api) {
     isPopupSender,
     closeFallback,
     closeFromSender,
+    trackActionPopup,
     handleWindowRemoved,
     handleFocusChanged,
     isFallbackWindow: (id) => id === fallback.windowId,

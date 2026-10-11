@@ -106,7 +106,7 @@ export function createHostController(api) {
     await ready;
     const [tab] = await api.tabs.query({ active: true, lastFocusedWindow: true });
     if (!tab) return openFallback(null);
-    if (tab.windowId === fallback.windowId) return openFallback(tab);
+    if (tab.windowId === fallback.windowId) return closeFallback();
     if (await sendToggle(tab.id)) return;
     if (canInject(tab.url)) {
       try {

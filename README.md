@@ -7,8 +7,9 @@ web search and browser commands.
 
 1. Open `chrome://extensions`, enable **Developer mode**.
 2. **Load unpacked** → select the `src/` folder.
-3. Shortcut is `⌘⇧K` (`Ctrl+Shift+K` on Windows/Linux). Change it at `chrome://extensions/shortcuts`.
-   Chrome does not let extensions take `⌘T`.
+3. Shortcut is `⌘⇧K` (`Ctrl+Shift+K` on Windows/Linux). Chrome only assigns it at install time and
+   silently skips it when another extension already uses the key; check or set it at
+   `chrome://extensions/shortcuts`. Chrome does not let extensions take `⌘T`.
 4. Reload any tabs that were already open before installing (content scripts only attach to new loads;
    the extension injects on demand, but a reload is the sure path).
 
@@ -41,5 +42,9 @@ npm test
 - [ ] `kapat` runs Close tab; `undo` reopens it.
 - [ ] `kopyala` copies the URL (paste somewhere to check).
 - [ ] On Gmail or GitHub the palette looks the same (no site CSS leaking in) and site shortcuts do not fire while typing.
+- [ ] On a page that pulls focus back to its own input, or that handles Esc / arrows at window level, typing still lands in the palette and Esc closes it.
+- [ ] Clicking the palette footer or list padding, then pressing Esc, still closes it.
+- [ ] While the popup window is open, the shortcut closes it.
+- [ ] With Chrome in macOS fullscreen, the shortcut on a new tab shows a centred panel on a dimmed backdrop, not a stretched one.
 - [ ] With suggestions off, DevTools → service worker → Network shows no request to suggestqueries.google.com.
 - [ ] Clicking outside the panel (the dimmed backdrop) closes it.

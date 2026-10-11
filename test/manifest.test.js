@@ -22,7 +22,7 @@ test('manifest wires shortcut, content script and web accessible resources', () 
   assert.equal(manifest.commands['open-palette'].suggested_key.mac, 'Command+Shift+K');
   assert.equal(manifest.commands['open-palette'].suggested_key.default, 'Ctrl+Shift+K');
   assert.deepEqual(manifest.content_scripts[0].js, ['overlay.js']);
-  assert.equal(manifest.content_scripts[0].run_at, 'document_idle');
+  assert.equal(manifest.content_scripts[0].run_at, 'document_start');
   const resources = manifest.web_accessible_resources[0].resources;
   assert.ok(resources.includes('palette/*'));
   assert.ok(resources.includes('_favicon/*'));

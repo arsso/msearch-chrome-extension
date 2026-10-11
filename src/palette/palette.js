@@ -29,7 +29,7 @@ function hostOf(url) {
   try { return new URL(url).host; } catch { return url ?? ''; }
 }
 
-export function createPalette({ root, host, send, onClose = () => {}, faviconUrl = null }) {
+export function createPalette({ root, host, send, onClose = () => {}, faviconUrl = null, captureKeys = true }) {
   const rootEl = el('div', 'ms-root');
   rootEl.dataset.host = host;
   rootEl.hidden = true;
@@ -120,25 +120,46 @@ export function createPalette({ root, host, send, onClose = () => {}, faviconUrl
     close();
   }
 
-  function onKey(e) {
+  // Keys are taken on the window in the capture phase, before any page or
+  // other-extension handler and regardless of where focus is. The palette
+  // lives in a closed shadow root, so the page sees focus on the host element,
+  // not on a text field, and some scripts (and sites that pull focus back to
+  // their own input) would otherwise treat the keystrokes as their own.
+  const win = root.ownerDocument.defaultView;
+  function hasFocus() {
+    return (root.activeElement ?? root.ownerDocument.activeElement) === input;
+  }
+  function onKeyDown(e) {
     if (!open) return;
-    // Nothing typed into the palette may reach the page's own shortcut handlers.
-    e.stopPropagation();
+    e.stopImmediatePropagation();
     switch (e.key) {
       case 'ArrowDown': selected = Math.min(results.length - 1, selected + 1); updateSelection(); break;
       case 'ArrowUp': selected = Math.max(0, selected - 1); updateSelection(); break;
       case 'Tab': selected = e.shiftKey ? Math.max(0, selected - 1) : Math.min(results.length - 1, selected + 1); updateSelection(); break;
       case 'Enter': choose({ meta: e.metaKey || e.ctrlKey }); break;
       case 'Escape': close(); break;
-      default: return;
+      default:
+        // A character must land in the palette even if the page moved focus.
+        if (!hasFocus()) input.focus();
+        return;
     }
     e.preventDefault();
   }
+  function swallow(e) { if (open) e.stopImmediatePropagation(); }
+  function handleKey(e) { if (e.type === 'keydown') onKeyDown(e); else swallow(e); }
+  // Listeners on the same target run in registration order, so a host that can
+  // register earlier than the page (the content script at document_start) does
+  // so itself and forwards to handleKey instead.
+  function listen(on) {
+    if (!captureKeys) return;
+    const f = on ? 'addEventListener' : 'removeEventListener';
+    for (const type of ['keydown', 'keyup', 'keypress']) win[f](type, handleKey, true);
+  }
 
-  rootEl.addEventListener('keydown', onKey);
-  for (const type of ['keyup', 'keypress']) rootEl.addEventListener(type, (e) => e.stopPropagation());
   input.addEventListener('input', scheduleQuery);
   rootEl.querySelector('.ms-backdrop').addEventListener('click', () => close());
+  // A press on the panel's own chrome (list padding, footer) must not move focus off the input.
+  rootEl.querySelector('.ms-panel').addEventListener('mousedown', (e) => { if (e.target !== input) e.preventDefault(); });
 
   function openPalette() {
     if (open) return;
@@ -149,6 +170,7 @@ export function createPalette({ root, host, send, onClose = () => {}, faviconUrl
     selected = 0;
     showError('');
     render();
+    listen(true);
     input.focus();
     query('');
   }
@@ -157,10 +179,11 @@ export function createPalette({ root, host, send, onClose = () => {}, faviconUrl
     if (!open) return;
     open = false;
     clearTimeout(timer);
+    listen(false);
     rootEl.hidden = true;
     input.blur();
     onClose();
   }
 
-  return { open: openPalette, close, isOpen: () => open };
+  return { open: openPalette, close, isOpen: () => open, handleKey };
 }

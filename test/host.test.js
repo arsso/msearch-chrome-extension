@@ -16,8 +16,9 @@ function fakeApi({ sendResult, injectOk = true, activeTab = { id: 1, windowId: 1
   const calls = [];
   const api = {
     calls,
+    activeTab,
     tabs: {
-      query: async () => (activeTab ? [activeTab] : []),
+      query: async () => (api.activeTab ? [api.activeTab] : []),
       sendMessage: async (tabId, msg) => { calls.push(['sendMessage', tabId, msg]); if (sendResult instanceof Error) throw sendResult; return sendResult; },
     },
     scripting: { executeScript: async (o) => { calls.push(['inject', o]); if (!injectOk) throw new Error('cannot access'); } },
@@ -59,13 +60,15 @@ test('chrome:// page: opens centered fallback window and remembers origin tab', 
   assert.ok(!api.calls.some(c => c[0] === 'inject'), 'no injection attempted on chrome://');
 });
 
-test('shortcut again while fallback open focuses the existing window', async () => {
+test('shortcut again while the fallback window is focused closes it', async () => {
   const api = fakeApi({ sendResult: new Error('no receiver'), activeTab: { id: 5, windowId: 10, url: 'chrome://extensions' } });
   const host = createHostController(api);
   await host.openPalette();
+  api.activeTab = { id: 99, windowId: 77, url: api.runtime.getURL('palette/palette.html') };
   await host.openPalette();
   assert.equal(api.calls.filter(c => c[0] === 'windows.create').length, 1);
-  assert.deepEqual(api.calls.at(-1), ['windows.update', 77, { focused: true }]);
+  assert.ok(api.calls.some(c => c[0] === 'windows.remove' && c[1] === 77));
+  assert.deepEqual(host.fallbackCtx(), {});
 });
 
 test('fallback closes when another window gains focus, stays when Chrome loses focus', async () => {

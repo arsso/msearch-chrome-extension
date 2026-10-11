@@ -3,12 +3,16 @@
   .ms-root { color: #f5f5f7; --ms-bg: rgba(32,32,36,0.94); --ms-border: rgba(255,255,255,0.1); --ms-muted: #a1a1a6; --ms-sel: rgba(255,255,255,0.08); }
 }
 .ms-root[data-host="overlay"] { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh; }
-.ms-root[data-host="window"] { position: fixed; inset: 0; display: block; }
+/* The fallback window is created at panel size, but Chrome opens it fullscreen when the
+   parent window is fullscreen (macOS); then the panel sits centred on a backdrop like the overlay. */
+.ms-root[data-host="window"] { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
 .ms-root[hidden] { display: none !important; }
 .ms-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.25); }
-.ms-root[data-host="window"] .ms-backdrop { display: none; }
 .ms-panel { position: relative; width: min(640px, calc(100vw - 32px)); background: var(--ms-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--ms-border); border-radius: 14px; box-shadow: 0 24px 80px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; }
-.ms-root[data-host="window"] .ms-panel { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+.ms-root[data-host="window"] .ms-panel { width: min(640px, 100vw); height: min(440px, 100vh); border: 0; border-radius: 0; box-shadow: none; }
+@media (min-width: 700px) {
+  .ms-root[data-host="window"] .ms-panel { border: 1px solid var(--ms-border); border-radius: 14px; box-shadow: 0 24px 80px rgba(0,0,0,0.3); }
+}
 .ms-inputwrap { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--ms-border); }
 .ms-inputwrap svg { width: 18px; height: 18px; flex: none; opacity: 0.6; }
 .ms-input { all: unset; flex: 1; font: inherit; font-size: 18px; color: inherit; min-width: 0; }
